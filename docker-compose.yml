@@ -1,0 +1,70 @@
+version: "3.9"
+services:
+  postgres:
+    container_name: postgres-db
+    image: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=web_1   
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+  angular:
+    container_name: angular-app
+    image: node:14.21.3
+    ports:
+      - "4200:4200"
+    build:
+      context: /angular_1
+      target: dependencies
+    command: ["sh", "-c", "npm install && npm i @angular/cli@15.2.11 && ng serve"]
+    working_dir: 
+      /home/node/app/angular_1
+    depends_on:
+      - adonis
+    volumes:
+      - ./:/home/node/app
+    networks:
+      - app-network
+  adonis:
+    container_name: adonis-app
+    image: node:14.21.3
+    ports:
+      - "3333:3333"
+      - "9229:9229"
+    build:
+      context: /adonis_1
+      target: dependencies
+    working_dir: 
+      /home/node/app/adonis_1
+    env_file:
+      - /adonis_1/.env
+    environment:
+      - PORT=3333
+      - HOST=0.0.0.0
+      - NODE_ENV=development
+      - APP_KEY=GBulec3m2ZUZ6h2pl3pAUgayWmmw2yE_
+      - DRIVE_DISK=local
+      - DB_CONNECTION=pg
+      - PG_HOST=postgres-db
+      - PG_PORT=5432
+      - PG_USER=postgres
+      - PG_PASSWORD=postgres
+      - PG_DB_NAME=web_1
+    depends_on:
+      - postgres
+    volumes:
+      - ./:/home/node/app
+    command: ["sh", "-c", "npm install && node ace migration:run && node ace db:seed && node ace serve --watch "]
+
+    networks:
+      - app-network
+networks:
+  app-network:
+    driver: bridge  
+volumes:
+  postgres_data:
